@@ -1,0 +1,12 @@
+{ "solarsystem" : [
+    {"name": "sun", "radius": 696342, "distance": 0, "planet": false},
+    {"name": "jupiter", "radius": 69911, "distance": 779, "planet": true},
+    {"name": "saturn", "radius": 58232, "distance": 1430, "planet": true},
+    {"name": "uranus", "radius": 25362, "distance": 2880, "planet": true},
+    {"name": "neptune", "radius": 24622, "distance": 4500, "planet": true},
+    {"name": "earth", "radius": 6371, "distance": 150, "planet": true},
+    {"name": "venus", "radius": 6052, "distance": 108, "planet": true},
+    {"name": "mercury", "radius": 2440, "distance": 57, "planet": true},
+    {"name": "mars", "radius": 3390, "distance": 228, "planet": true},
+    {"name": "pluto", "radius": 1186, "distance": 5910, "planet": false}
+]}
