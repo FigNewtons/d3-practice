@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Quad tree</title>
+        <script type="text/javascript" src="http://d3js.org/d3.v3.min.js"></script>
+
+        <style>
+
+            /* Any given point is in three states:
+             *      1. Not selected
+             *      2. Scanned (in contact with outside of brush)
+             *      3. Selected (contained within brush rectangle)
+             */
+
+            /* Gray circle with white border */
+            .point {
+                fill: #999;
+                stroke: #fff;
+            }
+
+            /* Orange circle with brown border */
+            .point.scanned {
+                fill: orange;
+                fill-opacity: 1;
+                stroke: brown;
+            }
+
+            /* Red circle with (brown) border */
+            .point.selected {
+                fill: red;
+                fill-opacity: 1;
+            }
+
+            /* Rectangles of the quad tree: No fill, light gray border */
+            .node {
+                fill: none;
+                stroke: #ccc;
+                shape-rendering: crispEdges;
+                visibility: hidden;
+            }
+
+            /* Brush has white border and differing fill from background */
+            .brush .extent {
+                stroke: #fff;
+                fill-opacity: .125;
+                shape-rendering: crispEdges;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script>
+
+            Math.seed = function(s){
+                return function() {
+                    s = Math.sin(s) * 10000;
+                    return s - Math.floor(s);
+                };
+            };
+
+            Math.random = Math.seed(42);
+
+
+
+            var width = 960,
+                height = 500;
+
+
+            // Randomly generate 5000 points within window 
+            var data = d3.range(5000).map(function(){
+                return [Math.random() * width, Math.random() * height];
+            });
+
+            // Set rectangular region and pass in points
+            var quadtree = d3.geom.quadtree()
+                             .extent([[-1, -1], [width + 1, height + 1]])
+                             (data);
+
+            // Scale x and y to match screen. Set default to 100 x 100 square
+            // with upper left corner at (100, 100)
+            var brush = d3.svg.brush()
+                          .x(d3.scale.identity().domain([0, width]))
+                          .y(d3.scale.identity().domain([0, height]))
+                          .extent([[100,100], [200, 200]])
+                          .on("brush", brushed);
+
+            var svg = d3.select("body").append("svg")
+                        .attr("width", width)
+                        .attr("height", height);
+            
+            /* Draw rectangles to screen */
+            svg.selectAll(".node")
+                .data(nodes(quadtree))
+              .enter().append("rect")
+                .attr("class", "node")
+                .attr("x", function(d){ return d.x; })
+                .attr("y", function(d){ return d.y; })
+                .attr("width", function(d){ return d.width; })
+                .attr("height", function(d){ return d.height; });
+    
+            /* Now draw the points... 
+             *
+             * Notice that ".point" is merely a label.
+             * The actual styling comes from the class attribute "point"
+             * Also, "circle" references the svg shape
+             */
+            var point = svg.selectAll(".point")
+                            .data(data)
+                          .enter().append("circle")
+                            .attr("class", "point")
+                            .attr("cx", function(d){ return d[0]; })
+                            .attr("cy", function(d){ return d[1]; })
+                            .attr("r", 4);
+            
+            /* Finally, call our brush! */
+            svg.append("g")
+                .attr("class", "brush")
+                .call(brush);
+
+            /* Since we have the brush selection visible by default,
+             * we want the CSS to reflect that state
+             */
+            brushed();
+
+            function brushed(){
+                var extent = brush.extent();
+                
+                point.each(function(d){ d.scanned = d.selected = false; });
+                search(quadtree, extent[0][0], extent[0][1], extent[1][0], extent[1][1]);
+                point.classed("scanned", function(d){ return d.scanned; });
+                point.classed("selected", function(d){ return d.selected; });
+            }
+
+
+            /* Nodes -> Array of rectangles */
+            function nodes(quadtree){
+                var nodes = [];
+                /* Requires callback with args {node, x1, y1, x2, y2} */
+                quadtree.visit(function(node, x1, y1, x2, y2){
+                    nodes.push({x: x1, y: y1, width: x2 - x1, height: y2 - y1});
+                });
+                return nodes;
+            }
+
+            /* Find nodes within the rectangle {(x0, y0), (x3, y3)} */
+            function search(quadtree, x0, y0, x3, y3){
+                quadtree.visit(function(node, x1, y1, x2, y2){
+                    var p = node.point;
+
+                    if(node.leaf){
+                        p.scanned = true;
+                        p.selected = (p[0] >= x0) && (p[0] < x3) && (p[1] >=y0) && (p[1] < y3);
+                    }
+                    /* True if point not in bounds, and so children not visited */
+                    return x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0;
+                });
+            }
+
+        </script>
+    </body>
+</html>
